@@ -1,0 +1,7 @@
+__pycache__
+
+# Google API authentication
+service_account.json
+
+# Secrets!
+keys.py
