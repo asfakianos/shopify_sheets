@@ -8,14 +8,18 @@ HEADERS = {"product_id":"A",
            "specifications":"C",
            "features":"D",
            "dimensions":"E",
-           "edited":"F"
+           "tags":"F",
+           "vendor":"G",
+           "edited":"H"
           }
 HEAD_INDEX = {"product_id":"0",
               "name":"1",
               "specifications":"2",
               "features":"3",
               "dimensions":"4",
-              "edited":"5"
+              "tags":"5",
+              "vendor":"6",
+              "edited":"7"
              }
 
 # Unique key for product spreadsheet
@@ -54,8 +58,16 @@ def update_sheet_from_shopify(shop, worksheet):
     # NOTE: we are using a dictionary to service as a system for "promising" a field, even if none exists (resulting in a stored empty string)
     for product in first_prod_page:
 
+        # NOTE RE product.to_dict(): Since we don't need all of the data from it, it's simpler just to clean like this
         # initialize a new product with empty meta fields (for now ignoring regular fields
-        product_meta[product.id] = {'name':product.title, 'features':'', 'dimensions':'', 'specifications':'', 'edited':False}
+        product_meta[product.id] = {'name':product.title, 
+                                    'features':'', 
+                                    'dimensions':'', 
+                                    'specifications':'', 
+                                    'tags':product.tags,
+                                    'vendor':product.vendor,
+                                    'edited':False
+                                   }
         
         # populate the list
         for field in product.metafields():
@@ -115,7 +127,7 @@ def main():
     sh = gspread_session()
     shop = shop_session()
     worksheet = sh.sheet1
-#    update_sheet_from_shopify(shop, worksheet)
+    update_sheet_from_shopify(shop, worksheet)
     to_shopify = fetch_sheet_updates(worksheet)
     if to_shopify:
         send_to_shopify(shop, to_shopify)
