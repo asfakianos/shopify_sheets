@@ -13,7 +13,7 @@ HEADERS = {"product_id":"A",
            "edited":"H"
           }
 HEAD_INDEX = {"product_id":"0",
-              "name":"1",
+              "title":"1",
               "specifications":"2",
               "features":"3",
               "dimensions":"4",
@@ -25,6 +25,9 @@ HEAD_INDEX = {"product_id":"0",
 # Unique key for product spreadsheet
 SHEET_KEY = "1UQmcZX09yK8HsagccECYNRngRZCklU3-x6o7BWDgxMw"
 
+# Loop delay in seconds. (Checks for EDIT every iteration, pulls from Shopify every 5th iteration)
+LOOP_DELAY = 5
+
 
 # Acquire a shopify session to interact with the shop
 def shop_session():
@@ -32,6 +35,7 @@ def shop_session():
     shopify.ShopifyResource.set_site(shop_url)
     print("shopify handshake success")
     return shopify.Shop.current()
+
 
 # Acquire a gspread session to use the google drive API
 def gspread_session():
@@ -60,7 +64,7 @@ def update_sheet_from_shopify(shop, worksheet):
 
         # NOTE RE product.to_dict(): Since we don't need all of the data from it, it's simpler just to clean like this
         # initialize a new product with empty meta fields (for now ignoring regular fields
-        product_meta[product.id] = {'name':product.title, 
+        product_meta[product.id] = {'title':product.title, 
                                     'features':'', 
                                     'dimensions':'', 
                                     'specifications':'', 
@@ -68,7 +72,6 @@ def update_sheet_from_shopify(shop, worksheet):
                                     'vendor':product.vendor,
                                     'edited':False
                                    }
-        
         # populate the list
         for field in product.metafields():
             product_meta[product.id][field.key] = field.value
@@ -96,6 +99,13 @@ def send_to_shopify(shop, items):
         # Find the item in question and update all fields
         item = item[0]
         product = shopify.Product.find(item[int(HEAD_INDEX['product_id'])])
+       
+        # Updating standard props before meta
+        product.title = item[int(HEAD_INDEX['title'])]
+        product.tags = item[int(HEAD_INDEX['tags'])]
+        product.vendor = item[int(HEAD_INDEX['vendor'])]
+        product.save()
+
         # While it would be great to loop this part, we don't know what has been edited, and we have to assign specific field var names:
         product.add_metafield(shopify.Metafield({
             'key':'features',
@@ -103,7 +113,7 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['features'])]
         }))
-        product.save
+        product.save()
 
         product.add_metafield(shopify.Metafield({
             'key':'dimensions',
@@ -111,7 +121,7 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['dimensions'])]
         }))
-        product.save
+        product.save()
 
         product.add_metafield(shopify.Metafield({
             'key':'specifications',
@@ -119,18 +129,39 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['specifications'])]
         }))
-        product.save
+        product.save()
+
+
+# Checks the google sheet for any edits and then sends them to shopify if they exist.
+def generate_and_apply_edits(shop, worksheet):
+    to_shopify = fetch_sheet_updates(worksheet)
+    if to_shopify:
+        send_to_shopify(shop, to_shopify)
 
 
 def main():
     # Initialize access/session
     sh = gspread_session()
     shop = shop_session()
-    worksheet = sh.sheet1
+    # Accessing the product-management worksheet
+    worksheet = sh.worksheet("Product-Management")
+
+    # Run through one initial iteration of the full loop to "catch up"
+    generate_and_apply_edits(shop, worksheet)
+    # Replace data with shopify source data
     update_sheet_from_shopify(shop, worksheet)
-    to_shopify = fetch_sheet_updates(worksheet)
-    if to_shopify:
-        send_to_shopify(shop, to_shopify)
+
+    # Main loop (forever)
+    i = 0 # Iterator
+    while True:
+        time.sleep(LOOP_DELAY)
+        i += 1
+        generate_and_apply_edits(shop, worksheet)
+        # Every 5th iteration, check back with shopify.
+        if i >= 5:
+            update_sheet_from_shopify(shop, worksheet)
+            i = 0
+
 
 if __name__ == '__main__':
     main()
