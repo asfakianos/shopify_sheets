@@ -114,7 +114,7 @@ def send_to_shopify(shop, items):
         product.save()
         
         # Shopify API rate limit = 2 req/sec, so delaying slightly over half a second to ensure we never exceed since the API doesnt allow single save metafields
-        time.sleep(0.7)
+        time.sleep(0.5)
         
         # While it would be great to loop this part, we don't know what has been edited, and we have to assign specific field var names:
         product.add_metafield(shopify.Metafield({
@@ -138,7 +138,6 @@ def send_to_shopify(shop, items):
             'value':item[int(HEAD_INDEX['specifications'])]
         }))
 
-        print(product.attributes)
 
 
 # Checks the google sheet for any edits and then sends them to shopify if they exist.
