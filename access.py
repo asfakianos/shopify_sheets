@@ -105,7 +105,7 @@ def send_to_shopify(shop, items):
         # Find the item in question and update all fields
         item = item[0]
         product = shopify.Product.find(item[int(HEAD_INDEX['product_id'])])
-       
+        print(item[int(HEAD_INDEX['features'])], item[int(HEAD_INDEX['dimensions'])], item[int(HEAD_INDEX['specifications'])])
         # Updating standard props before meta
         product.title = item[int(HEAD_INDEX['title'])]
         product.tags = item[int(HEAD_INDEX['tags'])]
@@ -123,6 +123,9 @@ def send_to_shopify(shop, items):
             'value':item[int(HEAD_INDEX['features'])]
         }))
 
+        product.save()
+        time.sleep(0.7)
+
         product.add_metafield(shopify.Metafield({
             'key':'dimensions',
             'value_type':'string',
@@ -130,12 +133,18 @@ def send_to_shopify(shop, items):
             'value':item[int(HEAD_INDEX['dimensions'])]
         }))
 
+        product.save()
+        time.sleep(0.7)
+
         product.add_metafield(shopify.Metafield({
             'key':'specifications',
             'value_type':'string',
             'namespace':'global',
             'value':item[int(HEAD_INDEX['specifications'])]
         }))
+
+        product.save()
+        time.sleep(0.7)
 
 
 # Checks the google sheet for any edits and then sends them to shopify if they exist.
