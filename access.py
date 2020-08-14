@@ -79,8 +79,10 @@ def update_sheet_from_shopify(shop, worksheet):
                                     'edited':False
                                    }
         # populate the list
+        print(product.title)
         for field in product.metafields():
             product_meta[product.id][field.key] = field.value
+            print(field.key, "-", field.value)
 
     # Using list comprehension to update because batch_update() uses a single API write request.
     worksheet.batch_update([{'range':f'A{id[0]+2}:{HEADERS["edited"]}{id[0]+2}',
@@ -105,13 +107,15 @@ def send_to_shopify(shop, items):
         # Find the item in question and update all fields
         item = item[0]
         product = shopify.Product.find(item[int(HEAD_INDEX['product_id'])])
-        print(item[int(HEAD_INDEX['features'])], item[int(HEAD_INDEX['dimensions'])], item[int(HEAD_INDEX['specifications'])])
+        
         # Updating standard props before meta
         product.title = item[int(HEAD_INDEX['title'])]
         product.tags = item[int(HEAD_INDEX['tags'])]
         product.vendor = item[int(HEAD_INDEX['vendor'])]
         product.variants[0].sku = item[int(HEAD_INDEX['sku'])]
+        
         product.save()
+        
         # Shopify API rate limit = 2 req/sec, so delaying slightly over half a second to ensure we never exceed since the API doesnt allow single save metafields
         time.sleep(0.7)
         
@@ -142,16 +146,19 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['specifications'])]
         }))
-
+        print(item[int(HEAD_INDEX['specifications'])])
         product.save()
         time.sleep(0.7)
 
 
 # Checks the google sheet for any edits and then sends them to shopify if they exist.
+# Returns 1 if there were edits, 0 if no edits
 def generate_and_apply_edits(shop, worksheet):
     to_shopify = fetch_sheet_updates(worksheet)
     if to_shopify:
         send_to_shopify(shop, to_shopify)
+        return 1
+    return 0
 
 
 def main():
@@ -171,9 +178,9 @@ def main():
     while True:
         time.sleep(LOOP_DELAY)
         i += 1
-        generate_and_apply_edits(shop, worksheet)
+        edits = generate_and_apply_edits(shop, worksheet)
         # Every 5th iteration, check back with shopify.
-        if i >= 5:
+        if edits == 1 or i >= 5:
             update_sheet_from_shopify(shop, worksheet)
             i = 0
 
