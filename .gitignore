@@ -1,7 +1,13 @@
 __pycache__
 
+# TODO: Eventually fix the node_modules if I ever actually do this part, but for now just ignoring the analytics module
+analytics/*
+
 # Google API authentication
 service_account.json
 
 # Secrets!
 keys.py
+
+# Because sometimes I forget to kill my jobs...
+*.swp

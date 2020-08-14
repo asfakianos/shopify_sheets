@@ -3,23 +3,27 @@ import shopify
 import gspread
 import time
 
+# NOTE: To add a field to the excel sheet, simply edit the headers and then add the respective header here and to the product_meta dict in update_sheet_from_shopify()
+
 HEADERS = {"product_id":"A",
-           "name":"B",
-           "specifications":"C",
-           "features":"D",
-           "dimensions":"E",
-           "tags":"F",
-           "vendor":"G",
-           "edited":"H"
+           "sku":"B",
+           "name":"C",
+           "specifications":"D",
+           "features":"E",
+           "dimensions":"F",
+           "tags":"G",
+           "vendor":"H",
+           "edited":"I"
           }
 HEAD_INDEX = {"product_id":"0",
-              "title":"1",
-              "specifications":"2",
+              "sku":"1",
+              "title":"2",
               "features":"3",
               "dimensions":"4",
-              "tags":"5",
-              "vendor":"6",
-              "edited":"7"
+              "specifications":"5",
+              "tags":"6",
+              "vendor":"7",
+              "edited":"8"
              }
 
 # Unique key for product spreadsheet
@@ -64,7 +68,9 @@ def update_sheet_from_shopify(shop, worksheet):
 
         # NOTE RE product.to_dict(): Since we don't need all of the data from it, it's simpler just to clean like this
         # initialize a new product with empty meta fields (for now ignoring regular fields
-        product_meta[product.id] = {'title':product.title, 
+        product_meta[product.id] = {
+                                    'sku':product.variants[0].sku,
+                                    'title':product.title,
                                     'features':'', 
                                     'dimensions':'', 
                                     'specifications':'', 
@@ -104,16 +110,18 @@ def send_to_shopify(shop, items):
         product.title = item[int(HEAD_INDEX['title'])]
         product.tags = item[int(HEAD_INDEX['tags'])]
         product.vendor = item[int(HEAD_INDEX['vendor'])]
+        product.variants[0].sku = item[int(HEAD_INDEX['sku'])]
+
         product.save()
 
         # While it would be great to loop this part, we don't know what has been edited, and we have to assign specific field var names:
+        # Metafields save themselves, so no need for a product.save()
         product.add_metafield(shopify.Metafield({
             'key':'features',
             'value_type':'string',
             'namespace':'global',
             'value':item[int(HEAD_INDEX['features'])]
         }))
-        product.save()
 
         product.add_metafield(shopify.Metafield({
             'key':'dimensions',
@@ -121,7 +129,6 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['dimensions'])]
         }))
-        product.save()
 
         product.add_metafield(shopify.Metafield({
             'key':'specifications',
@@ -129,7 +136,6 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['specifications'])]
         }))
-        product.save()
 
 
 # Checks the google sheet for any edits and then sends them to shopify if they exist.
