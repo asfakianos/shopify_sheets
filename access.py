@@ -1,4 +1,4 @@
-from keys import *
+from keys import * # Private file for storing private stuff 
 import shopify
 import gspread
 import time
