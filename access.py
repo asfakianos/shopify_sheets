@@ -26,8 +26,6 @@ HEAD_INDEX = {"product_id":"0",
               "edited":"8"
              }
 
-# Unique key for product spreadsheet
-SHEET_KEY = "1UQmcZX09yK8HsagccECYNRngRZCklU3-x6o7BWDgxMw"
 
 # Loop delay in seconds. (Checks for EDIT every iteration, pulls from Shopify every 5th iteration)
 LOOP_DELAY = 5
@@ -35,8 +33,7 @@ LOOP_DELAY = 5
 
 # Acquire a shopify session to interact with the shop
 def shop_session():
-    shop_url = "https://%s:%s@greenstar-test.myshopify.com/admin/api/%s" % (API_KEY, PASSWORD, API_VERSION) 
-    shopify.ShopifyResource.set_site(shop_url)
+    shopify.ShopifyResource.set_site(SHOP_URL)
     print("shopify handshake success")
     return shopify.Shop.current()
 
@@ -140,6 +137,8 @@ def send_to_shopify(shop, items):
             'namespace':'global',
             'value':item[int(HEAD_INDEX['specifications'])]
         }))
+
+        print(product.attributes)
 
 
 # Checks the google sheet for any edits and then sends them to shopify if they exist.
