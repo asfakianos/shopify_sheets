@@ -111,11 +111,11 @@ def send_to_shopify(shop, items):
         product.tags = item[int(HEAD_INDEX['tags'])]
         product.vendor = item[int(HEAD_INDEX['vendor'])]
         product.variants[0].sku = item[int(HEAD_INDEX['sku'])]
-
         product.save()
-
+        # Shopify API rate limit = 2 req/sec, so delaying slightly over half a second to ensure we never exceed since the API doesnt allow single save metafields
+        time.sleep(0.7)
+        
         # While it would be great to loop this part, we don't know what has been edited, and we have to assign specific field var names:
-        # Metafields save themselves, so no need for a product.save()
         product.add_metafield(shopify.Metafield({
             'key':'features',
             'value_type':'string',
